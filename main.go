@@ -14,11 +14,6 @@ var data = map[string]interface{}{
 	"title": "Personal Web",
 }
 
-type BlogPost struct {
-	Title   string
-	Content string
-}
-
 func main() {
 	route := mux.NewRouter()
 
