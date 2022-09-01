@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -12,6 +13,13 @@ import (
 var data = map[string]interface{}{
 	"title": "Personal Web",
 }
+
+type BlogPost struct {
+	Title   string
+	Content string
+}
+
+var blog []BlogPost
 
 func main() {
 	route := mux.NewRouter()
@@ -102,14 +110,15 @@ func formBlog(w http.ResponseWriter, r *http.Request) {
 }
 
 func addBlog(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// url, err := mux.CurrentRoute(r).Subrouter().Get("home").URL()
-	// if err != nil {
-	// 	panic(err)
-	// }
-	fmt.Println("success")
-	// http.Redirect(w, r, url.String(), http.StatusAccepted)
-	http.RedirectHandler("/index.html", 200)
+	fmt.Println("Title : " + r.PostForm.Get("title"))
+	fmt.Println("Content : " + r.PostForm.Get("content"))
+
+	http.Redirect(w, r, "/blog", http.StatusMovedPermanently)
 }
 
 func contactMe(w http.ResponseWriter, r *http.Request) {
