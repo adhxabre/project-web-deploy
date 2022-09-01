@@ -19,8 +19,6 @@ type BlogPost struct {
 	Content string
 }
 
-var blog []BlogPost
-
 func main() {
 	route := mux.NewRouter()
 
