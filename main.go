@@ -10,12 +10,21 @@ import (
 	"strconv"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 )
 
-var Data = map[string]interface{}{
-	"Title":   "Personal Web",
-	"IsLogin": false,
+type MetaData struct {
+	Title    string
+	IsLogin  bool
+	UserName string
+}
+
+var Data = MetaData{
+	Title:   "Personal Web",
+	IsLogin: false,
 }
 
 type Blog struct {
@@ -28,7 +37,12 @@ type Blog struct {
 	Content     string
 }
 
-var Blogs = []Blog{}
+type User struct {
+	Id       int
+	Name     string
+	Email    string
+	Password string
+}
 
 func main() {
 	route := mux.NewRouter()
@@ -46,7 +60,16 @@ func main() {
 	route.HandleFunc("/add-blog", formBlog).Methods("GET")
 	route.HandleFunc("/blog", addBlog).Methods("POST")
 	route.HandleFunc("/delete-blog/{id}", deleteBlog).Methods("GET")
+
 	route.HandleFunc("/contact-me", contactMe).Methods("GET")
+
+	route.HandleFunc("/register", formRegister).Methods("GET")
+	route.HandleFunc("/register", register).Methods("POST")
+
+	route.HandleFunc("/login", formLogin).Methods("GET")
+	route.HandleFunc("/login", login).Methods("POST")
+
+	route.HandleFunc("/logout", logout).Methods("GET")
 
 	fmt.Println("Server running on port 5000")
 	http.ListenAndServe("localhost:5000", route)
@@ -67,6 +90,16 @@ func home(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("message : " + err.Error()))
 		return
 	}
+
+	var store = sessions.NewCookieStore([]byte("SESSION_KEY"))
+	session, _ := store.Get(r, "SESSION_ID")
+
+	if session.Values["IsLogin"] == true {
+		Data.IsLogin = session.Values["IsLogin"].(bool)
+		Data.UserName = session.Values["Name"].(string)
+	}
+
+	fmt.Println(Data.IsLogin)
 
 	w.WriteHeader(http.StatusOK)
 	tmpl.Execute(w, Data)
@@ -202,4 +235,98 @@ func contactMe(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	tmpl.Execute(w, Data)
+}
+
+func formRegister(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	var tmpl, err = template.ParseFiles("views/register.html")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("message : " + err.Error()))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	tmpl.Execute(w, Data)
+}
+
+func register(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	name := r.PostForm.Get("name")
+	email := r.PostForm.Get("email")
+
+	password := r.PostForm.Get("password")
+	passwordHash, _ := bcrypt.GenerateFromPassword([]byte(password), 10)
+
+	_, err = connection.Conn.Exec(context.Background(), "INSERT INTO users(name, email,password) VALUES ($1,$2,$3)", name, email, passwordHash)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("message : " + err.Error()))
+		return
+	}
+
+	http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+}
+
+func formLogin(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	var tmpl, err = template.ParseFiles("views/login.html")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("message : " + err.Error()))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	tmpl.Execute(w, Data)
+}
+
+func login(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	email := r.PostForm.Get("email")
+	password := r.PostForm.Get("password")
+
+	user := User{}
+
+	err = connection.Conn.QueryRow(context.Background(), "SELECT * FROM users WHERE email=$1", email).Scan(
+		&user.Id, &user.Name, &user.Email, &user.Password,
+	)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("message : " + err.Error()))
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("message : " + err.Error()))
+		return
+	}
+
+	var store = sessions.NewCookieStore([]byte("SESSION_KEY"))
+	session, _ := store.Get(r, "SESSION_ID")
+	session.Values["IsLogin"] = true
+	session.Values["Name"] = user.Name
+	session.Save(r, w)
+
+	http.Redirect(w, r, "/home", http.StatusMovedPermanently)
+}
+
+func logout(w http.ResponseWriter, r *http.Request) {
+	var store = sessions.NewCookieStore([]byte("SESSION_KEY"))
+	session, _ := store.Get(r, "SESSION_ID")
+	session.Options.MaxAge = -1
+
+	http.Redirect(w, r, "/contact-me", http.StatusMovedPermanently)
 }
