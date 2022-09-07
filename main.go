@@ -10,8 +10,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-var data = map[string]interface{}{
-	"title": "Personal Web",
+var Data = map[string]interface{}{
+	"Title": "Personal Web",
 }
 
 func main() {
@@ -50,7 +50,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	tmpl.Execute(w, data)
+	tmpl.Execute(w, Data)
 }
 
 func blogs(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +64,7 @@ func blogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	tmpl.Execute(w, data)
+	tmpl.Execute(w, Data)
 }
 
 func blogDetail(w http.ResponseWriter, r *http.Request) {
@@ -80,8 +80,8 @@ func blogDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := map[string]interface{}{
-		"data": data,
-		"id":   id,
+		"Data": Data,
+		"Id":   id,
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -99,7 +99,7 @@ func formBlog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	tmpl.Execute(w, data)
+	tmpl.Execute(w, Data)
 }
 
 func addBlog(w http.ResponseWriter, r *http.Request) {
@@ -125,5 +125,5 @@ func contactMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	tmpl.Execute(w, data)
+	tmpl.Execute(w, Data)
 }
