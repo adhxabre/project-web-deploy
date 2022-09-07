@@ -34,16 +34,12 @@
   <!-- Blog -->
   <div class="blog-detail">
     <div class="blog-detail-container">
-      <h1>Pasar Coding di Indonesia Dinilai Masih Menjanjikan</h1>
-      <div class="author"> 12 Jul 2021 22:30 WIB | Ichsan Emrald Alamsyah</div>
+      <h1>{{.Blog.Title}}</h1>
+      <div class="author"> {{.Blog.Post_date}} | {{.Blog.Author}}</div>
       <img src="/public/assets/blog-img-detail.png" alt="detail" />
-      <p>Ketimpangan sumber daya manusia (SDM) di sektor digital masih
-        menjadi isu yang belum terpecahkan. Berdasarkan penelitian
-        ManpowerGroup, ketimpangan SDM global, termasuk Indonesia,
-        meningkat dua kali lipat dalam satu dekade terakhir. Lorem ipsum,
-        dolor sit amet consectetur adipisicing elit. Quam, molestiae
-        numquam! Deleniti maiores expedita eaque deserunt quaerat! Dicta,
-        eligendi debitis?</p>
+      <p>
+        {{.Blog.Content}}
+      </p>
     </div>
   </div>
 </body>
