@@ -81,7 +81,7 @@ func blogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, _ := connection.Conn.Query(context.Background(), "select id, title, image, content, post_at from blog")
+	rows, _ := connection.Conn.Query(context.Background(), "SELECT id, title, image, content, post_at FROM blog ORDER BY id DESC")
 
 	var result []Blog
 	for rows.Next() {
@@ -94,8 +94,8 @@ func blogs(w http.ResponseWriter, r *http.Request) {
 		}
 
 		each.Author = "Ilham Fathullah"
-
 		each.Format_date = each.Post_date.Format("2 January 2006")
+
 		result = append(result, each)
 	}
 
