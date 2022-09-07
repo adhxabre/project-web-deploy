@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"golang-c2/connection"
 	"html/template"
 	"log"
 	"net/http"
@@ -16,23 +18,21 @@ var Data = map[string]interface{}{
 }
 
 type Blog struct {
-	Title     string
-	Post_date string
-	Author    string
-	Content   string
+	Id          int
+	Title       string
+	Image       string
+	Post_date   time.Time
+	Format_date string
+	Author      string
+	Content     string
 }
 
-var Blogs = []Blog{
-	{
-		Title:     "Pasar Coding di Indonesia Dinilai Masih Menjanjikan",
-		Post_date: "12 Jul 2021 22:30 WIB",
-		Author:    "Ilham Fathullah",
-		Content:   "Test",
-	},
-}
+var Blogs = []Blog{}
 
 func main() {
 	route := mux.NewRouter()
+
+	connection.DatabaseConnect()
 
 	// static folder
 	route.PathPrefix("/public/").Handler(http.StripPrefix("/public/", http.FileServer(http.Dir("./public/"))))
@@ -73,7 +73,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 func blogs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Println(Blogs)
+
 	var tmpl, err = template.ParseFiles("views/blog.html")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -81,9 +81,27 @@ func blogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	rows, _ := connection.Conn.Query(context.Background(), "select id, title, image, content, post_at from blog")
+
+	var result []Blog
+	for rows.Next() {
+		var each = Blog{}
+
+		var err = rows.Scan(&each.Id, &each.Title, &each.Image, &each.Content, &each.Post_date)
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+
+		each.Author = "Ilham Fathullah"
+
+		each.Format_date = each.Post_date.Format("2 January 2006")
+		result = append(result, each)
+	}
+
 	respData := map[string]interface{}{
 		"Data":  Data,
-		"Blogs": Blogs,
+		"Blogs": result,
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -149,7 +167,7 @@ func addBlog(w http.ResponseWriter, r *http.Request) {
 
 	var newBlog = Blog{
 		Title:     title,
-		Post_date: time.Now().String(),
+		Post_date: time.Now(),
 		Author:    "Ilham Fathullah",
 		Content:   content,
 	}
