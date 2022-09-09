@@ -23,8 +23,7 @@ type MetaData struct {
 }
 
 var Data = MetaData{
-	Title:   "Personal Web",
-	IsLogin: false,
+	Title: "Personal Web",
 }
 
 type Blog struct {
@@ -91,10 +90,12 @@ func home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var store = sessions.NewCookieStore([]byte("SESSION_KEY"))
+	var store = sessions.NewCookieStore([]byte("SESSION_ID"))
 	session, _ := store.Get(r, "SESSION_ID")
 
-	if session.Values["IsLogin"] == true {
+	if session.Values["IsLogin"] != true {
+		Data.IsLogin = false
+	} else {
 		Data.IsLogin = session.Values["IsLogin"].(bool)
 		Data.UserName = session.Values["Name"].(string)
 	}
@@ -131,6 +132,16 @@ func blogs(w http.ResponseWriter, r *http.Request) {
 		each.Format_date = each.Post_date.Format("2 January 2006")
 
 		result = append(result, each)
+	}
+
+	var store = sessions.NewCookieStore([]byte("SESSION_ID"))
+	session, _ := store.Get(r, "SESSION_ID")
+
+	if session.Values["IsLogin"] != true {
+		Data.IsLogin = false
+	} else {
+		Data.IsLogin = session.Values["IsLogin"].(bool)
+		Data.UserName = session.Values["Name"].(string)
 	}
 
 	respData := map[string]interface{}{
@@ -233,6 +244,16 @@ func contactMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var store = sessions.NewCookieStore([]byte("SESSION_ID"))
+	session, _ := store.Get(r, "SESSION_ID")
+
+	if session.Values["IsLogin"] != true {
+		Data.IsLogin = false
+	} else {
+		Data.IsLogin = session.Values["IsLogin"].(bool)
+		Data.UserName = session.Values["Name"].(string)
+	}
+
 	w.WriteHeader(http.StatusOK)
 	tmpl.Execute(w, Data)
 }
@@ -314,19 +335,22 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var store = sessions.NewCookieStore([]byte("SESSION_KEY"))
+	var store = sessions.NewCookieStore([]byte("SESSION_ID"))
 	session, _ := store.Get(r, "SESSION_ID")
 	session.Values["IsLogin"] = true
 	session.Values["Name"] = user.Name
+	session.Options.MaxAge = 10800 // 3 hours
 	session.Save(r, w)
 
 	http.Redirect(w, r, "/home", http.StatusMovedPermanently)
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
-	var store = sessions.NewCookieStore([]byte("SESSION_KEY"))
+	fmt.Println("logout")
+	var store = sessions.NewCookieStore([]byte("SESSION_ID"))
 	session, _ := store.Get(r, "SESSION_ID")
 	session.Options.MaxAge = -1
+	session.Save(r, w)
 
-	http.Redirect(w, r, "/contact-me", http.StatusMovedPermanently)
+	http.Redirect(w, r, "/home", http.StatusSeeOther)
 }
