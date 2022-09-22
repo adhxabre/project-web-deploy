@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"golang-c2/connection"
+	"golang-c2/middleware"
 	"html/template"
 	"log"
 	"net/http"
@@ -53,6 +54,7 @@ func main() {
 
 	// static folder
 	route.PathPrefix("/public/").Handler(http.StripPrefix("/public/", http.FileServer(http.Dir("./public/"))))
+	route.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads/"))))
 
 	// routing
 	route.HandleFunc("/", helloWorld).Methods("GET")
@@ -60,7 +62,7 @@ func main() {
 	route.HandleFunc("/blog", blogs).Methods("GET")
 	route.HandleFunc("/blog/{id}", blogDetail).Methods("GET")
 	route.HandleFunc("/add-blog", formBlog).Methods("GET")
-	route.HandleFunc("/blog", addBlog).Methods("POST")
+	route.HandleFunc("/blog", middleware.UploadFile(addBlog)).Methods("POST")
 	route.HandleFunc("/delete-blog/{id}", deleteBlog).Methods("GET")
 
 	route.HandleFunc("/contact-me", contactMe).Methods("GET")
@@ -141,19 +143,18 @@ func blogs(w http.ResponseWriter, r *http.Request) {
 		Data.UserName = session.Values["Name"].(string)
 	}
 
-	rows, _ := connection.Conn.Query(context.Background(), "SELECT id, title, image, content, post_at FROM blog ORDER BY id DESC")
+	rows, _ := connection.Conn.Query(context.Background(), "SELECT blog.id, title, image, content, post_at, users.name as author FROM blog LEFT JOIN users ON blog.author_id = users.id  ORDER BY id DESC")
 
 	var result []Blog
 	for rows.Next() {
 		var each = Blog{}
 
-		var err = rows.Scan(&each.Id, &each.Title, &each.Image, &each.Content, &each.Post_date)
+		var err = rows.Scan(&each.Id, &each.Title, &each.Image, &each.Content, &each.Post_date, &each.Author)
 		if err != nil {
 			fmt.Println(err.Error())
 			return
 		}
 
-		each.Author = "Ilham Fathullah"
 		each.Format_date = each.Post_date.Format("2 January 2006")
 
 		if session.Values["IsLogin"] != true {
@@ -165,6 +166,7 @@ func blogs(w http.ResponseWriter, r *http.Request) {
 		result = append(result, each)
 	}
 
+	fmt.Println(result)
 	respData := map[string]interface{}{
 		"Data":  Data,
 		"Blogs": result,
@@ -230,7 +232,16 @@ func addBlog(w http.ResponseWriter, r *http.Request) {
 	title := r.PostForm.Get("title")
 	content := r.PostForm.Get("content")
 
-	_, err = connection.Conn.Exec(context.Background(), "INSERT INTO blog(title, content,image) VALUES ($1,$2,'image.png')", title, content)
+	dataContex := r.Context().Value("dataFile")
+	image := dataContex.(string)
+
+	var store = sessions.NewCookieStore([]byte("SESSION_ID"))
+	session, _ := store.Get(r, "SESSION_ID")
+
+	author := session.Values["Id"].(int)
+	fmt.Println(author)
+
+	_, err = connection.Conn.Exec(context.Background(), "INSERT INTO blog(title, content,image,author_id) VALUES ($1,$2,$3,$4)", title, content, image, author)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("message : " + err.Error()))
@@ -385,6 +396,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	session.Values["IsLogin"] = true
 	session.Values["Name"] = user.Name
+	session.Values["Id"] = user.Id
 	session.Options.MaxAge = 10800 // 3 hours
 
 	session.AddFlash("succesfull login", "message")
