@@ -66,10 +66,12 @@
         <img src="/public/assets/blog-img.png" alt="Pasar Coding di Indonesia Dinilai Masih Menjanjikan" />
       </div>
       <div class="blog-content">
+        {{if $data.IsLogin}}
         <div class="button-group">
           <a class="btn-edit">Edit Post</a>
           <a class="btn-post" href="/delete-blog/{{$data.Id}}">Delete Blog</a>
         </div>
+        {{end}}
         <h1>
           <a href="/blog/{{$data.Id}}" target="_blank">
             {{$data.Title}}
