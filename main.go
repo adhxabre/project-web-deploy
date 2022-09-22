@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -17,9 +18,10 @@ import (
 )
 
 type MetaData struct {
-	Title    string
-	IsLogin  bool
-	UserName string
+	Title     string
+	IsLogin   bool
+	UserName  string
+	FlashData string
 }
 
 var Data = MetaData{
@@ -101,7 +103,19 @@ func home(w http.ResponseWriter, r *http.Request) {
 		Data.UserName = session.Values["Name"].(string)
 	}
 
-	fmt.Println(Data.IsLogin)
+	fm := session.Flashes("message")
+
+	var flashes []string
+	if len(fm) > 0 {
+		session.Save(r, w)
+		// Initiate a strings slice to return messages.
+		for _, fl := range fm {
+			// Add message to the slice.
+			flashes = append(flashes, fl.(string))
+		}
+	}
+
+	Data.FlashData = strings.Join(flashes, "")
 
 	w.WriteHeader(http.StatusOK)
 	tmpl.Execute(w, Data)
@@ -298,6 +312,13 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var store = sessions.NewCookieStore([]byte("SESSION_ID"))
+	session, _ := store.Get(r, "SESSION_ID")
+
+	session.AddFlash("succesfull register", "message")
+
+	session.Save(r, w)
+
 	http.Redirect(w, r, "/login", http.StatusMovedPermanently)
 }
 
@@ -311,11 +332,31 @@ func formLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var store = sessions.NewCookieStore([]byte("SESSION_ID"))
+	session, _ := store.Get(r, "SESSION_ID")
+
+	fm := session.Flashes("message")
+
+	var flashes []string
+	if len(fm) > 0 {
+		session.Save(r, w)
+		// Initiate a strings slice to return messages.
+		for _, fl := range fm {
+			// Add message to the slice.
+			flashes = append(flashes, fl.(string))
+		}
+	}
+
+	Data.FlashData = strings.Join(flashes, "")
+
 	w.WriteHeader(http.StatusOK)
 	tmpl.Execute(w, Data)
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
+	var store = sessions.NewCookieStore([]byte("SESSION_ID"))
+	session, _ := store.Get(r, "SESSION_ID")
+
 	err := r.ParseForm()
 	if err != nil {
 		log.Fatal(err)
@@ -330,7 +371,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		&user.Id, &user.Name, &user.Email, &user.Password,
 	)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("message : " + err.Error()))
 		return
 	}
@@ -342,11 +383,11 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var store = sessions.NewCookieStore([]byte("SESSION_ID"))
-	session, _ := store.Get(r, "SESSION_ID")
 	session.Values["IsLogin"] = true
 	session.Values["Name"] = user.Name
 	session.Options.MaxAge = 10800 // 3 hours
+
+	session.AddFlash("succesfull login", "message")
 	session.Save(r, w)
 
 	http.Redirect(w, r, "/home", http.StatusMovedPermanently)
