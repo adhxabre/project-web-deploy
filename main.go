@@ -146,7 +146,7 @@ func blogs(w http.ResponseWriter, r *http.Request) {
 		Data.UserName = session.Values["Name"].(string)
 	}
 
-	rows, _ := connection.Conn.Query(context.Background(), "SELECT blog.id, title, image, content, post_at, users.name as author FROM blog LEFT JOIN users ON blog.author_id = users.id  ORDER BY id DESC")
+	rows, _ := connection.Conn.Query(context.Background(), "SELECT tb_blog.id, title, image, content, post_at, tb_user.name as author FROM blog LEFT JOIN users ON tb_blog.author_id = tb_user.id  ORDER BY id DESC")
 
 	var result []Blog
 	for rows.Next() {
@@ -192,7 +192,7 @@ func blogDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	BlogDetail := Blog{}
-	err = connection.Conn.QueryRow(context.Background(), "SELECT id, title, image, content, post_at FROM blog WHERE id=$1", id).Scan(
+	err = connection.Conn.QueryRow(context.Background(), "SELECT id, title, image, content, post_at FROM tb_blog WHERE id=$1", id).Scan(
 		&BlogDetail.Id, &BlogDetail.Title, &BlogDetail.Image, &BlogDetail.Content, &BlogDetail.Post_date)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -244,7 +244,7 @@ func addBlog(w http.ResponseWriter, r *http.Request) {
 	author := session.Values["Id"].(int)
 	fmt.Println(author)
 
-	_, err = connection.Conn.Exec(context.Background(), "INSERT INTO blog(title, content,image,author_id) VALUES ($1,$2,$3,$4)", title, content, image, author)
+	_, err = connection.Conn.Exec(context.Background(), "INSERT INTO tb_blog(title, content, image, author_id) VALUES ($1,$2,$3,$4)", title, content, image, author)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("message : " + err.Error()))
@@ -259,7 +259,7 @@ func deleteBlog(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
 
-	_, err := connection.Conn.Exec(context.Background(), "DELETE FROM blog WHERE id=$1", id)
+	_, err := connection.Conn.Exec(context.Background(), "DELETE FROM tb_blog WHERE id=$1", id)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("message : " + err.Error()))
@@ -319,7 +319,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 	password := r.PostForm.Get("password")
 	passwordHash, _ := bcrypt.GenerateFromPassword([]byte(password), 10)
 
-	_, err = connection.Conn.Exec(context.Background(), "INSERT INTO users(name, email,password) VALUES ($1,$2,$3)", name, email, passwordHash)
+	_, err = connection.Conn.Exec(context.Background(), "INSERT INTO tb_user(name, email, password) VALUES ($1,$2,$3)", name, email, passwordHash)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("message : " + err.Error()))
@@ -381,7 +381,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	user := User{}
 
-	err = connection.Conn.QueryRow(context.Background(), "SELECT * FROM users WHERE email=$1", email).Scan(
+	err = connection.Conn.QueryRow(context.Background(), "SELECT * FROM tb_user WHERE email=$1", email).Scan(
 		&user.Id, &user.Name, &user.Email, &user.Password,
 	)
 	if err != nil {
