@@ -6,18 +6,12 @@ import (
 	"os"
 
 	"github.com/jackc/pgx/v4"
-	"github.com/joho/godotenv"
 )
 
 var Conn *pgx.Conn
 
 func DatabaseConnect() {
 	var err error
-
-	errEnv := godotenv.Load()
-	if errEnv != nil {
-		panic("Failed to load env file")
-	}
 
 	var DB_HOST = os.Getenv("DB_HOST")
 	var DB_USER = os.Getenv("DB_USER")
