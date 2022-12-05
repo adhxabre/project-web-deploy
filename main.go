@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -75,8 +76,10 @@ func main() {
 
 	route.HandleFunc("/logout", logout).Methods("GET")
 
-	fmt.Println("Server running on port 5000")
-	http.ListenAndServe("localhost:5000", route)
+	var port = os.Getenv("PORT")
+
+	fmt.Println("Server running on port " + port)
+	http.ListenAndServe(":"+port, route)
 }
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
