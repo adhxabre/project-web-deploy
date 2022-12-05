@@ -17,7 +17,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
-	"github.com/joho/godotenv"
+	// "github.com/joho/godotenv"
 )
 
 type MetaData struct {
@@ -77,10 +77,10 @@ func main() {
 
 	route.HandleFunc("/logout", logout).Methods("GET")
 
-	errEnv := godotenv.Load()
-	if errEnv != nil {
-		panic("Failed to load env file")
-	}
+	// errEnv := godotenv.Load()
+	// if errEnv != nil {
+	// 	panic("Failed to load env file")
+	// }
 
 	var port = os.Getenv("PORT")
 
