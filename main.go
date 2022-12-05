@@ -17,6 +17,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
+	"github.com/joho/godotenv"
 )
 
 type MetaData struct {
@@ -75,6 +76,11 @@ func main() {
 	route.HandleFunc("/login", login).Methods("POST")
 
 	route.HandleFunc("/logout", logout).Methods("GET")
+
+	errEnv := godotenv.Load()
+	if errEnv != nil {
+		panic("Failed to load env file")
+	}
 
 	var port = os.Getenv("PORT")
 
@@ -146,7 +152,7 @@ func blogs(w http.ResponseWriter, r *http.Request) {
 		Data.UserName = session.Values["Name"].(string)
 	}
 
-	rows, _ := connection.Conn.Query(context.Background(), "SELECT tb_blog.id, title, image, content, post_date, tb_user.name as author FROM blog LEFT JOIN users ON tb_blog.author_id = tb_user.id  ORDER BY id DESC")
+	rows, _ := connection.Conn.Query(context.Background(), "SELECT tb_blog.id, title, image, content, post_date, tb_user.name as author FROM tb_blog LEFT JOIN tb_user ON tb_blog.author_id = tb_user.id  ORDER BY id DESC")
 
 	var result []Blog
 	for rows.Next() {
