@@ -146,7 +146,7 @@ func blogs(w http.ResponseWriter, r *http.Request) {
 		Data.UserName = session.Values["Name"].(string)
 	}
 
-	rows, _ := connection.Conn.Query(context.Background(), "SELECT tb_blog.id, title, image, content, post_at, tb_user.name as author FROM blog LEFT JOIN users ON tb_blog.author_id = tb_user.id  ORDER BY id DESC")
+	rows, _ := connection.Conn.Query(context.Background(), "SELECT tb_blog.id, title, image, content, post_date, tb_user.name as author FROM blog LEFT JOIN users ON tb_blog.author_id = tb_user.id  ORDER BY id DESC")
 
 	var result []Blog
 	for rows.Next() {
@@ -192,7 +192,7 @@ func blogDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	BlogDetail := Blog{}
-	err = connection.Conn.QueryRow(context.Background(), "SELECT id, title, image, content, post_at FROM tb_blog WHERE id=$1", id).Scan(
+	err = connection.Conn.QueryRow(context.Background(), "SELECT id, title, image, content, post_date FROM tb_blog WHERE id=$1", id).Scan(
 		&BlogDetail.Id, &BlogDetail.Title, &BlogDetail.Image, &BlogDetail.Content, &BlogDetail.Post_date)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
